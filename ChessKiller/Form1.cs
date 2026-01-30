@@ -70,24 +70,32 @@ namespace ChessKiller
 
             elo_text_value.Text = elo_value.Value.ToString();
             engine.Elo = (int)elo_value.Value;
+            lastFENLichess = "";
+            lastFENChessCom = "";
         }
 
         private void arrow_value_Scroll(object sender, EventArgs e)
         {
             arrow_text_value.Text = arrow_value.Value.ToString();
             engine.MultiPV = (int)arrow_value.Value;
+            lastFENLichess = "";
+            lastFENChessCom = "";
         }
 
         private void depth_value_Scroll(object sender, EventArgs e)
         {
             depth_text_value.Text = depth_value.Value.ToString();
             engine.Depth = (int)depth_value.Value;
+            lastFENLichess = "";
+            lastFENChessCom = "";
         }
 
         private void autoDelay_value_Scroll(object sender, EventArgs e)
         {
             autoMove_delay_Text_value.Text = autoDelay_value.Value.ToString();
             autoMoveDelay = rnd.Next(0, (int)autoDelay_value.Value);
+            lastFENLichess = "";
+            lastFENChessCom = "";
         }
 
         private void auto_move_value_CheckedChanged(object sender, EventArgs e)
@@ -96,6 +104,8 @@ namespace ChessKiller
             if (auto_move_value.Checked)
             {
                 autoMove = true;
+                lastFENLichess = "";
+                lastFENChessCom = "";
             }
             else
             {
@@ -106,8 +116,9 @@ namespace ChessKiller
         private void personalities_SelectedIndexChanged(object sender, EventArgs e)
         {
             engine.Personality = personalities.Text;
-            //
             persDescr.Text = pers[personalities.SelectedIndex];
+            lastFENLichess = "";
+            lastFENChessCom = "";
         }
 
         // Expiration
