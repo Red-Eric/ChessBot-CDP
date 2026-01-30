@@ -110,49 +110,11 @@ namespace ChessKiller
 
         // Expiration
 
-        static async Task CheckExpiration(string dateLimite)
-        {
-            string apiKey = "WPOK8LWQNYUI";
-            string url = $"https://api.timezonedb.com/v2.1/list-time-zone?key={apiKey}&format=json&country=FR";
-            using HttpClient client = new HttpClient();
-            HttpResponseMessage response = await client.GetAsync(url);
-            if (!response.IsSuccessStatusCode)
-            {
-                MessageBox.Show("This version no longer works, please update (Discord server #download)");
-                Instance.Close();
-            }
-
-            string json = await response.Content.ReadAsStringAsync();
-            using JsonDocument doc = JsonDocument.Parse(json);
-
-            if (!doc.RootElement.TryGetProperty("zones", out JsonElement zones) || zones.GetArrayLength() == 0)
-            {
-                MessageBox.Show("This version no longer works, please update (Discord server #download)");
-                Instance.Close();
-            }
-
-            long timestamp = zones[0].GetProperty("timestamp").GetInt64();
-            DateTime currentTime = DateTimeOffset.FromUnixTimeSeconds(timestamp).DateTime;
-
-            if (!DateTime.TryParse(dateLimite, out DateTime limitDate))
-            {
-                MessageBox.Show("This version no longer works, please update (Discord server #download)");
-                Instance.Close();
-            }
-
-            if (currentTime.Date > limitDate.Date)
-            {
-                MessageBox.Show("This version no longer works, please update (Discord server #download)");
-                Instance.Close();
-            }
-        }
-
-
         //////// Hack thread
         ///
         private async Task AutomateBrowserAsync()
         {
-            await CheckExpiration(Encoding.UTF8.GetString(Convert.FromBase64String("MjAyNi0wMy0wMQ==")));
+
 
             // Open Browser
 
@@ -166,13 +128,6 @@ namespace ChessKiller
 
             //var pages = await browser.PagesAsync();
             IPage page = null;
-
-            //await page.GoToAsync("https://www.chess.com/play/computer");
-            //await page.GoToAsync("https://lichess.org/");
-
-
-            // inject 
-
 
             while (true)
             {
@@ -188,7 +143,7 @@ namespace ChessKiller
                         continue;
                     }
 
-                    if (!injected)
+                    if (!injected && page!=null)
                     {
                         await page.EvaluateExpressionOnNewDocumentAsync("function clearHighlightSquares() {\r\n    const url = window.location.href;\r\n    if (!url.includes(\"lichess\") && !url.includes(\"chess.com\")) {\r\n        return;\r\n    }\r\n    document.querySelectorAll(\".customH\").forEach((el) => el.remove());\r\n}");
                         await page.EvaluateExpressionOnNewDocumentAsync("function highlightMovesOnBoard(moves, side, fen_) {\r\n    clearHighlightSquares();\r\n\r\n    if (!Array.isArray(moves)) return;\r\n    if (\r\n        !(\r\n            (side === \"w\" && fen_.split(\" \")[1] === \"w\") ||\r\n            (side === \"b\" && fen_.split(\" \")[1] === \"b\")\r\n        )\r\n    ) {\r\n        return;\r\n    }\r\n\r\n    let parent;\r\n    const url = window.location.href;\r\n\r\n    if (url.includes(\"chess.com\")) {\r\n        parent = document.querySelector(\"wc-chess-board\");\r\n    } else if (url.includes(\"lichess\")) {\r\n        parent = document.querySelector(\"cg-container\");\r\n    } else {\r\n        return;\r\n    }\r\n\r\n    if (!parent) return;\r\n\r\n    const squareSize = parent.offsetWidth / 8;\r\n    const maxMoves = 5;\r\n    const colors = [\"blue\", \"green\", \"yellow\", \"orange\", \"red\"];\r\n\r\n    parent.querySelectorAll(\".customH\").forEach((el) => el.remove());\r\n\r\n    function squareToPosition(square) {\r\n        const fileChar = square[0];\r\n        const rankChar = square[1];\r\n        const rank = parseInt(rankChar, 10) - 1;\r\n\r\n        let file;\r\n        if (side === \"w\") {\r\n            file = fileChar.charCodeAt(0) - \"a\".charCodeAt(0);\r\n            const y = (7 - rank) * squareSize;\r\n            const x = file * squareSize;\r\n            return { x, y };\r\n        } else {\r\n            file = \"h\".charCodeAt(0) - fileChar.charCodeAt(0);\r\n            const y = rank * squareSize;\r\n            const x = file * squareSize;\r\n            return { x, y };\r\n        }\r\n    }\r\n\r\n    function drawArrow(fromSquare, toSquare, color, score) {\r\n        const from = squareToPosition(fromSquare);\r\n        const to = squareToPosition(toSquare);\r\n\r\n        const svg = document.createElementNS(\"http://www.w3.org/2000/svg\", \"svg\");\r\n        svg.setAttribute(\"class\", \"customH\");\r\n        svg.setAttribute(\"width\", parent.offsetWidth);\r\n        svg.setAttribute(\"height\", parent.offsetWidth);\r\n        svg.style.position = \"absolute\";\r\n        svg.style.left = \"0\";\r\n        svg.style.top = \"0\";\r\n        svg.style.pointerEvents = \"none\";\r\n        svg.style.overflow = \"visible\";\r\n        svg.style.zIndex = \"10\";\r\n\r\n        const defs = document.createElementNS(\"http://www.w3.org/2000/svg\", \"defs\");\r\n        const marker = document.createElementNS(\"http://www.w3.org/2000/svg\", \"marker\");\r\n        marker.setAttribute(\"id\", `arrowhead-${color}`);\r\n        marker.setAttribute(\"markerWidth\", \"3.5\");\r\n        marker.setAttribute(\"markerHeight\", \"2.5\");\r\n        marker.setAttribute(\"refX\", \"1.75\");\r\n        marker.setAttribute(\"refY\", \"1.25\");\r\n        marker.setAttribute(\"orient\", \"auto\");\r\n        marker.setAttribute(\"markerUnits\", \"strokeWidth\");\r\n\r\n        const arrowPath = document.createElementNS(\"http://www.w3.org/2000/svg\", \"path\");\r\n        arrowPath.setAttribute(\"d\", \"M0,0 L3.5,1.25 L0,2.5 Z\");\r\n        arrowPath.setAttribute(\"fill\", color);\r\n        marker.appendChild(arrowPath);\r\n        defs.appendChild(marker);\r\n        svg.appendChild(defs);\r\n\r\n        const line = document.createElementNS(\"http://www.w3.org/2000/svg\", \"line\");\r\n        line.setAttribute(\"x1\", from.x + squareSize / 2);\r\n        line.setAttribute(\"y1\", from.y + squareSize / 2);\r\n        line.setAttribute(\"x2\", to.x + squareSize / 2);\r\n        line.setAttribute(\"y2\", to.y + squareSize / 2);\r\n        line.setAttribute(\"stroke\", color);\r\n        line.setAttribute(\"stroke-width\", \"5\");\r\n        line.setAttribute(\"marker-end\", `url(#arrowhead-${color})`);\r\n        line.setAttribute(\"opacity\", \"0.6\");\r\n        svg.appendChild(line);\r\n\r\n        if (score !== undefined) {\r\n            const text = document.createElementNS(\"http://www.w3.org/2000/svg\", \"text\");\r\n            text.setAttribute(\"x\", to.x + squareSize - 4);\r\n            text.setAttribute(\"y\", to.y + 12);\r\n            text.setAttribute(\"fill\", color);\r\n            text.setAttribute(\"font-size\", \"13\");\r\n            text.setAttribute(\"font-weight\", \"bold\");\r\n            text.setAttribute(\"text-anchor\", \"end\");\r\n            text.setAttribute(\"alignment-baseline\", \"hanging\");\r\n            text.setAttribute(\"opacity\", \"1\");\r\n            text.textContent = score;\r\n            svg.appendChild(text);\r\n        }\r\n\r\n        parent.appendChild(svg);\r\n    }\r\n\r\n    parent.style.position = \"relative\";\r\n\r\n    moves.slice(0, maxMoves).forEach((move, index) => {\r\n        const color = colors[index] || \"red\";\r\n        drawArrow(move.from, move.to, color, move.eval);\r\n    });\r\n}");
@@ -212,42 +167,34 @@ namespace ChessKiller
 
                     }
 
-                    if (page!= null && page.Url.Contains("chess.com"))
+                    if (page != null && page.Url.Contains("chess.com"))
                     {
 
                         if (autoMove)
                         {
                             await page.EvaluateExpressionAsync("clickButtonByTextIncludes('Nouvelle')");
+                            await page.EvaluateExpressionAsync("clickButtonByTextIncludes('new')");
                         }
 
-                        var board = await page.QuerySelectorAsync("wc-chess-board");
-                        if (board != null)
+                        string fen = await page.EvaluateExpressionAsync<string>(@"document.querySelector('wc-chess-board').game.getFEN();");
+                        int sideIndicator = await page.EvaluateExpressionAsync<int>(@"document.querySelector('wc-chess-board').game.getPlayingAs();");
+
+                        sideChessCom = sideIndicator == 1 ? "white" : "black";
+
+                        if (fen != lastFENChessCom)
                         {
+                            await page.EvaluateExpressionAsync("if (typeof clearHighlightSquares === \"function\") {\r\n    clearHighlightSquares();\r\n}");
+                            lastFENChessCom = fen;
+                            var moves = engine.GetBestMoves(fen);
 
-                            string fen = await board.EvaluateFunctionAsync<string>(
-                                @"el => el.game.getFEN()"
-                            );
-                            int sideIndicator = await board.EvaluateFunctionAsync<int>(
-                                @"el => el.game.getPlayingAs()"
-                            );
-
-
-                            sideChessCom = sideIndicator == 1 ? "white" : "black";
-
-                            if (fen != lastFENChessCom)
+                            var moves2 = moves.Select(m => new
                             {
-                                await page.EvaluateExpressionAsync("if (typeof clearHighlightSquares === \"function\") {\r\n    clearHighlightSquares();\r\n}");
-                                lastFENChessCom = fen;
-                                var moves = engine.GetBestMoves(fen);
+                                from = m["from"].ToString(),
+                                to = m["to"].ToString(),
+                                eval = m["eval"].ToString()
+                            }).ToList();
 
-                                var moves2 = moves.Select(m => new
-                                {
-                                    from = m["from"].ToString(),
-                                    to = m["to"].ToString(),
-                                    eval = m["eval"].ToString()
-                                }).ToList();
-
-                                await page.EvaluateFunctionAsync(@"
+                            await page.EvaluateFunctionAsync(@"
                                 (moves, side, fen) => {
                                     if (typeof highlightMovesOnBoard === 'function') {
                                         highlightMovesOnBoard(moves, side, fen);
@@ -256,24 +203,22 @@ namespace ChessKiller
                                 ", moves2, sideChessCom[0], fen);
 
 
+                            if (autoMove && moves.Count > 0 && sideChessCom[0] == fen.Split(' ')[1][0])
+                            {
+                                int randomDelay = rnd.Next(0, autoMoveDelay + 1);
 
+                                await page.EvaluateFunctionAsync(
+                                    "movePiece",
+                                    moves[0]["from"],
+                                    moves[0]["to"],
+                                    "q",
+                                    randomDelay
+                                );
+                            }
 
-                                if (autoMove && moves.Count > 0 && sideChessCom[0] == fen.Split(' ')[1][0])
-                                {
-                                    int randomDelay = rnd.Next(0, autoMoveDelay + 1);
-
-                                    await page.EvaluateFunctionAsync(
-                                        "movePiece",
-                                        moves[0]["from"],
-                                        moves[0]["to"],
-                                        "q",
-                                        randomDelay
-                                    );
-                                }
-
-                                if (moves.Count > 0)
-                                {
-                                    await page.EvaluateFunctionAsync(@"
+                            if (moves.Count > 0)
+                            {
+                                await page.EvaluateFunctionAsync(@"
                                     (evalScore, side) => {
                                         if (typeof createEvalBar === 'function') {
                                             createEvalBar(evalScore, side);
@@ -282,9 +227,9 @@ namespace ChessKiller
                                     ", moves[0]["eval"], sideChessCom);
 
 
-                                }
                             }
                         }
+
 
                     }
 
@@ -402,22 +347,22 @@ namespace ChessKiller
                 catch (Exception ex)
                 {
                     //Console.Clear();
-                    //Console.WriteLine("=== EXCEPTION ===");
-                    //Console.WriteLine($"Type      : {ex.GetType().FullName}");
-                    //Console.WriteLine($"Message   : {ex.Message}");
-                    //Console.WriteLine($"Source    : {ex.Source}");
-                    //Console.WriteLine("StackTrace:");
-                    //Console.WriteLine(ex.StackTrace);
+                    Console.WriteLine("=== EXCEPTION ===");
+                    Console.WriteLine($"Type      : {ex.GetType().FullName}");
+                    Console.WriteLine($"Message   : {ex.Message}");
+                    Console.WriteLine($"Source    : {ex.Source}");
+                    Console.WriteLine("StackTrace:");
+                    Console.WriteLine(ex.StackTrace);
 
-                    //if (ex.InnerException != null)
-                    //{
-                    //    Console.WriteLine("=== INNER EXCEPTION ===");
-                    //    Console.WriteLine(ex.InnerException.Message);
-                    //    Console.WriteLine(ex.InnerException.StackTrace);
-                    //}
+                    if (ex.InnerException != null)
+                    {
+                        Console.WriteLine("=== INNER EXCEPTION ===");
+                        Console.WriteLine(ex.InnerException.Message);
+                        Console.WriteLine(ex.InnerException.StackTrace);
+                    }
 
-                    //Console.WriteLine("=================");
-                    //continue;
+                    Console.WriteLine("=================");
+                    continue;
                 }
 
 
