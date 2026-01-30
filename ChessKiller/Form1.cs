@@ -106,6 +106,8 @@ namespace ChessKiller
         private void personalities_SelectedIndexChanged(object sender, EventArgs e)
         {
             engine.Personality = personalities.Text;
+            //
+            persDescr.Text = pers[personalities.SelectedIndex];
         }
 
         // Expiration
