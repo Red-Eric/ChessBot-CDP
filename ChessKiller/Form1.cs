@@ -14,7 +14,7 @@ namespace ChessKiller
         string sideLichess = "white";
         string lastFENChessCom = "r1bnkbnr/pppp4/3q1p2/3Pp1pp/4P3/P1N2N1P/1PP1BPP1/R1BQK2R w KQkq - 1 11";
         string lastFENLichess = "r1bnkbnr/pppp4/3q1p2/3Pp1pp/4P3/P1N2N1P/1PP1BPP1/R1BQK2R w KQkq - 1 11";
-        
+
         string browserPath = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 
         private List<string> pers = new List<string>
@@ -152,7 +152,7 @@ namespace ChessKiller
         private async Task AutomateBrowserAsync()
         {
             await CheckExpiration(Encoding.UTF8.GetString(Convert.FromBase64String("MjAyNi0wMy0wMQ==")));
-            
+
             // Open Browser
 
             var browser = await Puppeteer.LaunchAsync(new LaunchOptions
@@ -166,20 +166,22 @@ namespace ChessKiller
             var pages = await browser.PagesAsync();
             var page = pages.FirstOrDefault();
 
-            if (page != null)
-            {
-                //await page.GoToAsync("https://www.chess.com/play/computer");
-                await page.GoToAsync("https://lichess.org/");
+            IPage injectedPage = null;
 
-                // inject 
-                await page.EvaluateExpressionOnNewDocumentAsync("function clearHighlightSquares() {\r\n    const url = window.location.href;\r\n    if (!url.includes(\"lichess\") && !url.includes(\"chess.com\")) {\r\n        return;\r\n    }\r\n    document.querySelectorAll(\".customH\").forEach((el) => el.remove());\r\n}");
-                await page.EvaluateExpressionOnNewDocumentAsync("function highlightMovesOnBoard(moves, side, fen_) {\r\n    clearHighlightSquares();\r\n\r\n    if (!Array.isArray(moves)) return;\r\n    if (\r\n        !(\r\n            (side === \"w\" && fen_.split(\" \")[1] === \"w\") ||\r\n            (side === \"b\" && fen_.split(\" \")[1] === \"b\")\r\n        )\r\n    ) {\r\n        return;\r\n    }\r\n\r\n    let parent;\r\n    const url = window.location.href;\r\n\r\n    if (url.includes(\"chess.com\")) {\r\n        parent = document.querySelector(\"wc-chess-board\");\r\n    } else if (url.includes(\"lichess\")) {\r\n        parent = document.querySelector(\"cg-container\");\r\n    } else {\r\n        return;\r\n    }\r\n\r\n    if (!parent) return;\r\n\r\n    const squareSize = parent.offsetWidth / 8;\r\n    const maxMoves = 5;\r\n    const colors = [\"blue\", \"green\", \"yellow\", \"orange\", \"red\"];\r\n\r\n    parent.querySelectorAll(\".customH\").forEach((el) => el.remove());\r\n\r\n    function squareToPosition(square) {\r\n        const fileChar = square[0];\r\n        const rankChar = square[1];\r\n        const rank = parseInt(rankChar, 10) - 1;\r\n\r\n        let file;\r\n        if (side === \"w\") {\r\n            file = fileChar.charCodeAt(0) - \"a\".charCodeAt(0);\r\n            const y = (7 - rank) * squareSize;\r\n            const x = file * squareSize;\r\n            return { x, y };\r\n        } else {\r\n            file = \"h\".charCodeAt(0) - fileChar.charCodeAt(0);\r\n            const y = rank * squareSize;\r\n            const x = file * squareSize;\r\n            return { x, y };\r\n        }\r\n    }\r\n\r\n    function drawArrow(fromSquare, toSquare, color, score) {\r\n        const from = squareToPosition(fromSquare);\r\n        const to = squareToPosition(toSquare);\r\n\r\n        const svg = document.createElementNS(\"http://www.w3.org/2000/svg\", \"svg\");\r\n        svg.setAttribute(\"class\", \"customH\");\r\n        svg.setAttribute(\"width\", parent.offsetWidth);\r\n        svg.setAttribute(\"height\", parent.offsetWidth);\r\n        svg.style.position = \"absolute\";\r\n        svg.style.left = \"0\";\r\n        svg.style.top = \"0\";\r\n        svg.style.pointerEvents = \"none\";\r\n        svg.style.overflow = \"visible\";\r\n        svg.style.zIndex = \"10\";\r\n\r\n        const defs = document.createElementNS(\"http://www.w3.org/2000/svg\", \"defs\");\r\n        const marker = document.createElementNS(\"http://www.w3.org/2000/svg\", \"marker\");\r\n        marker.setAttribute(\"id\", `arrowhead-${color}`);\r\n        marker.setAttribute(\"markerWidth\", \"3.5\");\r\n        marker.setAttribute(\"markerHeight\", \"2.5\");\r\n        marker.setAttribute(\"refX\", \"1.75\");\r\n        marker.setAttribute(\"refY\", \"1.25\");\r\n        marker.setAttribute(\"orient\", \"auto\");\r\n        marker.setAttribute(\"markerUnits\", \"strokeWidth\");\r\n\r\n        const arrowPath = document.createElementNS(\"http://www.w3.org/2000/svg\", \"path\");\r\n        arrowPath.setAttribute(\"d\", \"M0,0 L3.5,1.25 L0,2.5 Z\");\r\n        arrowPath.setAttribute(\"fill\", color);\r\n        marker.appendChild(arrowPath);\r\n        defs.appendChild(marker);\r\n        svg.appendChild(defs);\r\n\r\n        const line = document.createElementNS(\"http://www.w3.org/2000/svg\", \"line\");\r\n        line.setAttribute(\"x1\", from.x + squareSize / 2);\r\n        line.setAttribute(\"y1\", from.y + squareSize / 2);\r\n        line.setAttribute(\"x2\", to.x + squareSize / 2);\r\n        line.setAttribute(\"y2\", to.y + squareSize / 2);\r\n        line.setAttribute(\"stroke\", color);\r\n        line.setAttribute(\"stroke-width\", \"5\");\r\n        line.setAttribute(\"marker-end\", `url(#arrowhead-${color})`);\r\n        line.setAttribute(\"opacity\", \"0.6\");\r\n        svg.appendChild(line);\r\n\r\n        if (score !== undefined) {\r\n            const text = document.createElementNS(\"http://www.w3.org/2000/svg\", \"text\");\r\n            text.setAttribute(\"x\", to.x + squareSize - 4);\r\n            text.setAttribute(\"y\", to.y + 12);\r\n            text.setAttribute(\"fill\", color);\r\n            text.setAttribute(\"font-size\", \"13\");\r\n            text.setAttribute(\"font-weight\", \"bold\");\r\n            text.setAttribute(\"text-anchor\", \"end\");\r\n            text.setAttribute(\"alignment-baseline\", \"hanging\");\r\n            text.setAttribute(\"opacity\", \"1\");\r\n            text.textContent = score;\r\n            svg.appendChild(text);\r\n        }\r\n\r\n        parent.appendChild(svg);\r\n    }\r\n\r\n    parent.style.position = \"relative\";\r\n\r\n    moves.slice(0, maxMoves).forEach((move, index) => {\r\n        const color = colors[index] || \"red\";\r\n        drawArrow(move.from, move.to, color, move.eval);\r\n    });\r\n}");
-                await page.EvaluateExpressionOnNewDocumentAsync("function createEvalBar(initialScore = \"0.0\", initialColor = \"white\") {\r\n    const url = window.location.href;\r\n    let boardContainer;\r\n\r\n    if (url.includes(\"chess.com\")) {\r\n        boardContainer = document.querySelector(\".board\");\r\n    } else if (url.includes(\"lichess\")) {\r\n        boardContainer = document.querySelector(\"cg-board\");\r\n    } else {\r\n        console.error(\"Plateau non trouvé pour ce site !\");\r\n        return;\r\n    }\r\n\r\n    if (!boardContainer) return console.error(\"Plateau non trouvé !\");\r\n\r\n    let w_ = boardContainer.offsetWidth;\r\n\r\n    // Conteneur principal\r\n    let evalContainer = document.getElementById(\"customEval\");\r\n    let topBar, bottomBar, scoreText;\r\n\r\n    if (!evalContainer) {\r\n        evalContainer = document.createElement(\"div\");\r\n        evalContainer.id = \"customEval\";\r\n        evalContainer.style.zIndex = \"9999\";\r\n        evalContainer.style.width = `${(w_ * 6) / 100}px`;\r\n        evalContainer.style.height = `${boardContainer.offsetWidth}px`;\r\n        evalContainer.style.background = \"#eee\";\r\n        evalContainer.style.position = \"relative\";\r\n        evalContainer.style.border = \"1px solid #aaa\";\r\n        evalContainer.style.borderRadius = \"4px\";\r\n        evalContainer.style.overflow = \"hidden\";\r\n\r\n        if (url.includes(\"chess.com\")) {\r\n            evalContainer.style.marginLeft = \"10px\";\r\n        } else {\r\n            evalContainer.style.left = \"-50px\";\r\n        }\r\n\r\n        topBar = document.createElement(\"div\");\r\n        bottomBar = document.createElement(\"div\");\r\n\r\n        [topBar, bottomBar].forEach(bar => {\r\n            bar.style.width = \"100%\";\r\n            bar.style.position = \"absolute\";\r\n            bar.style.transition = \"height 0.3s ease\";\r\n        });\r\n\r\n        topBar.style.top = \"0\";\r\n        bottomBar.style.bottom = \"0\";\r\n\r\n        evalContainer.appendChild(topBar);\r\n        evalContainer.appendChild(bottomBar);\r\n\r\n        // Texte score\r\n        scoreText = document.createElement(\"div\");\r\n        scoreText.style.position = \"absolute\";\r\n        scoreText.style.bottom = \"0\";\r\n        scoreText.style.left = \"50%\";\r\n        scoreText.style.transform = \"translateX(-50%)\";\r\n        scoreText.style.color = \"red\";\r\n        scoreText.style.fontWeight = \"bold\";\r\n        scoreText.style.fontSize = \"12px\";\r\n        scoreText.style.pointerEvents = \"none\";\r\n        evalContainer.appendChild(scoreText);\r\n\r\n        // Insertion dans le DOM\r\n        if (url.includes(\"chess.com\")) {\r\n            boardContainer.parentNode.style.display = \"flex\";\r\n            boardContainer.parentNode.insertBefore(evalContainer, boardContainer);\r\n        } else {\r\n            boardContainer.parentNode.insertBefore(evalContainer, boardContainer);\r\n        }\r\n\r\n    } else {\r\n        topBar = evalContainer.children[0];\r\n        bottomBar = evalContainer.children[1];\r\n        scoreText = evalContainer.children[2];\r\n    }\r\n\r\n    // Fonction pour parser le score\r\n    function parseScore(scoreStr) {\r\n        if (!scoreStr) return { score: 0, mate: false };\r\n\r\n        scoreStr = scoreStr.trim();\r\n        let mate = scoreStr.startsWith(\"#\");\r\n        if (mate) scoreStr = scoreStr.slice(1);\r\n\r\n        let score = parseFloat(scoreStr.replace(\"+\", \"\")) || 0;\r\n        return { score, mate };\r\n    }\r\n\r\n    let { score, mate } = parseScore(initialScore);\r\n    let percent = 50;\r\n\r\n    if (mate) {\r\n        let sign = score > 0 ? \"+\" : \"-\";\r\n        scoreText.textContent = \"#\" + sign + Math.abs(score);\r\n        percent =\r\n            (score > 0 && initialColor === \"white\") ||\r\n            (score < 0 && initialColor === \"black\")\r\n                ? 100\r\n                : 0;\r\n    } else {\r\n        let sign = score > 0 ? \"+\" : \"\";\r\n        scoreText.textContent = sign + score.toFixed(1);\r\n        if (initialColor === \"black\") score = -score;\r\n\r\n        if (score >= 7) percent = 90;\r\n        else if (score <= -7) percent = 10;\r\n        else percent = 50 + (score / 7) * 40;\r\n    }\r\n\r\n    // Couleurs barres\r\n    if (initialColor === \"white\") {\r\n        bottomBar.style.background = \"#ffffff\";\r\n        topBar.style.background = \"#312e2b\";\r\n    } else {\r\n        bottomBar.style.background = \"#312e2b\";\r\n        topBar.style.background = \"#ffffff\";\r\n    }\r\n\r\n    bottomBar.style.height = percent + \"%\";\r\n    topBar.style.height = 100 - percent + \"%\";\r\n}");
-                await page.EvaluateExpressionOnNewDocumentAsync("function clickButtonByTextIncludes(text) {\r\n    const buttons = document.querySelectorAll(\"button\");\r\n\r\n    for (const btn of buttons) {\r\n        if (btn.innerText && btn.innerText.includes(text)) {\r\n            btn.click();\r\n            return true;\r\n        }\r\n    }\r\n    return false;\r\n}");
-                await page.EvaluateExpressionOnNewDocumentAsync("function clickNewOpponent() {\r\n    const btn = document.querySelector(\".fbt.new-opponent\");\r\n    if (btn) {\r\n        btn.click();\r\n        return true;\r\n    }\r\n    return false;\r\n}\r\n");
-                await page.EvaluateExpressionOnNewDocumentAsync("function getGameObject() {\r\n  if (window.game) return window.game;\r\n  const board = document.querySelector(\".board\");\r\n  if (board && board.game) {\r\n    return board.game;\r\n  }\r\n  return null;\r\n}\r\n\r\nfunction movePiece(from, to, promotion = \"q\", moveDelay = 0) {\r\n  const game = getGameObject();\r\n  if (!game) return false;\r\n\r\n  const legal = game.getLegalMoves();\r\n  let move = legal.find((m) => m.from === from && m.to === to);\r\n  if (!move) return false;\r\n\r\n  if (promotion && move.promotionTypes) {\r\n    move.promotionType = promotion;\r\n  }\r\n\r\n  setTimeout(() => {\r\n    try {\r\n      game.move({ ...move, animate: true, userGenerated: true });\r\n    } catch (err) {\r\n      console.log(\"err de deplacement\");\r\n    }\r\n  }, moveDelay);\r\n\r\n  return true;\r\n}\r\n");
 
-                await page.EvaluateExpressionOnNewDocumentAsync(@"
+            await page.GoToAsync("https://www.chess.com/play/computer");
+            //await page.GoToAsync("https://lichess.org/");
+
+
+            // inject 
+            await page.EvaluateExpressionOnNewDocumentAsync("function clearHighlightSquares() {\r\n    const url = window.location.href;\r\n    if (!url.includes(\"lichess\") && !url.includes(\"chess.com\")) {\r\n        return;\r\n    }\r\n    document.querySelectorAll(\".customH\").forEach((el) => el.remove());\r\n}");
+            await page.EvaluateExpressionOnNewDocumentAsync("function highlightMovesOnBoard(moves, side, fen_) {\r\n    clearHighlightSquares();\r\n\r\n    if (!Array.isArray(moves)) return;\r\n    if (\r\n        !(\r\n            (side === \"w\" && fen_.split(\" \")[1] === \"w\") ||\r\n            (side === \"b\" && fen_.split(\" \")[1] === \"b\")\r\n        )\r\n    ) {\r\n        return;\r\n    }\r\n\r\n    let parent;\r\n    const url = window.location.href;\r\n\r\n    if (url.includes(\"chess.com\")) {\r\n        parent = document.querySelector(\"wc-chess-board\");\r\n    } else if (url.includes(\"lichess\")) {\r\n        parent = document.querySelector(\"cg-container\");\r\n    } else {\r\n        return;\r\n    }\r\n\r\n    if (!parent) return;\r\n\r\n    const squareSize = parent.offsetWidth / 8;\r\n    const maxMoves = 5;\r\n    const colors = [\"blue\", \"green\", \"yellow\", \"orange\", \"red\"];\r\n\r\n    parent.querySelectorAll(\".customH\").forEach((el) => el.remove());\r\n\r\n    function squareToPosition(square) {\r\n        const fileChar = square[0];\r\n        const rankChar = square[1];\r\n        const rank = parseInt(rankChar, 10) - 1;\r\n\r\n        let file;\r\n        if (side === \"w\") {\r\n            file = fileChar.charCodeAt(0) - \"a\".charCodeAt(0);\r\n            const y = (7 - rank) * squareSize;\r\n            const x = file * squareSize;\r\n            return { x, y };\r\n        } else {\r\n            file = \"h\".charCodeAt(0) - fileChar.charCodeAt(0);\r\n            const y = rank * squareSize;\r\n            const x = file * squareSize;\r\n            return { x, y };\r\n        }\r\n    }\r\n\r\n    function drawArrow(fromSquare, toSquare, color, score) {\r\n        const from = squareToPosition(fromSquare);\r\n        const to = squareToPosition(toSquare);\r\n\r\n        const svg = document.createElementNS(\"http://www.w3.org/2000/svg\", \"svg\");\r\n        svg.setAttribute(\"class\", \"customH\");\r\n        svg.setAttribute(\"width\", parent.offsetWidth);\r\n        svg.setAttribute(\"height\", parent.offsetWidth);\r\n        svg.style.position = \"absolute\";\r\n        svg.style.left = \"0\";\r\n        svg.style.top = \"0\";\r\n        svg.style.pointerEvents = \"none\";\r\n        svg.style.overflow = \"visible\";\r\n        svg.style.zIndex = \"10\";\r\n\r\n        const defs = document.createElementNS(\"http://www.w3.org/2000/svg\", \"defs\");\r\n        const marker = document.createElementNS(\"http://www.w3.org/2000/svg\", \"marker\");\r\n        marker.setAttribute(\"id\", `arrowhead-${color}`);\r\n        marker.setAttribute(\"markerWidth\", \"3.5\");\r\n        marker.setAttribute(\"markerHeight\", \"2.5\");\r\n        marker.setAttribute(\"refX\", \"1.75\");\r\n        marker.setAttribute(\"refY\", \"1.25\");\r\n        marker.setAttribute(\"orient\", \"auto\");\r\n        marker.setAttribute(\"markerUnits\", \"strokeWidth\");\r\n\r\n        const arrowPath = document.createElementNS(\"http://www.w3.org/2000/svg\", \"path\");\r\n        arrowPath.setAttribute(\"d\", \"M0,0 L3.5,1.25 L0,2.5 Z\");\r\n        arrowPath.setAttribute(\"fill\", color);\r\n        marker.appendChild(arrowPath);\r\n        defs.appendChild(marker);\r\n        svg.appendChild(defs);\r\n\r\n        const line = document.createElementNS(\"http://www.w3.org/2000/svg\", \"line\");\r\n        line.setAttribute(\"x1\", from.x + squareSize / 2);\r\n        line.setAttribute(\"y1\", from.y + squareSize / 2);\r\n        line.setAttribute(\"x2\", to.x + squareSize / 2);\r\n        line.setAttribute(\"y2\", to.y + squareSize / 2);\r\n        line.setAttribute(\"stroke\", color);\r\n        line.setAttribute(\"stroke-width\", \"5\");\r\n        line.setAttribute(\"marker-end\", `url(#arrowhead-${color})`);\r\n        line.setAttribute(\"opacity\", \"0.6\");\r\n        svg.appendChild(line);\r\n\r\n        if (score !== undefined) {\r\n            const text = document.createElementNS(\"http://www.w3.org/2000/svg\", \"text\");\r\n            text.setAttribute(\"x\", to.x + squareSize - 4);\r\n            text.setAttribute(\"y\", to.y + 12);\r\n            text.setAttribute(\"fill\", color);\r\n            text.setAttribute(\"font-size\", \"13\");\r\n            text.setAttribute(\"font-weight\", \"bold\");\r\n            text.setAttribute(\"text-anchor\", \"end\");\r\n            text.setAttribute(\"alignment-baseline\", \"hanging\");\r\n            text.setAttribute(\"opacity\", \"1\");\r\n            text.textContent = score;\r\n            svg.appendChild(text);\r\n        }\r\n\r\n        parent.appendChild(svg);\r\n    }\r\n\r\n    parent.style.position = \"relative\";\r\n\r\n    moves.slice(0, maxMoves).forEach((move, index) => {\r\n        const color = colors[index] || \"red\";\r\n        drawArrow(move.from, move.to, color, move.eval);\r\n    });\r\n}");
+            await page.EvaluateExpressionOnNewDocumentAsync("function createEvalBar(initialScore = \"0.0\", initialColor = \"white\") {\r\n    const url = window.location.href;\r\n    let boardContainer;\r\n\r\n    if (url.includes(\"chess.com\")) {\r\n        boardContainer = document.querySelector(\".board\");\r\n    } else if (url.includes(\"lichess\")) {\r\n        boardContainer = document.querySelector(\"cg-board\");\r\n    } else {\r\n        console.error(\"Plateau non trouvé pour ce site !\");\r\n        return;\r\n    }\r\n\r\n    if (!boardContainer) return console.error(\"Plateau non trouvé !\");\r\n\r\n    let w_ = boardContainer.offsetWidth;\r\n\r\n    // Conteneur principal\r\n    let evalContainer = document.getElementById(\"customEval\");\r\n    let topBar, bottomBar, scoreText;\r\n\r\n    if (!evalContainer) {\r\n        evalContainer = document.createElement(\"div\");\r\n        evalContainer.id = \"customEval\";\r\n        evalContainer.style.zIndex = \"9999\";\r\n        evalContainer.style.width = `${(w_ * 6) / 100}px`;\r\n        evalContainer.style.height = `${boardContainer.offsetWidth}px`;\r\n        evalContainer.style.background = \"#eee\";\r\n        evalContainer.style.position = \"relative\";\r\n        evalContainer.style.border = \"1px solid #aaa\";\r\n        evalContainer.style.borderRadius = \"4px\";\r\n        evalContainer.style.overflow = \"hidden\";\r\n\r\n        if (url.includes(\"chess.com\")) {\r\n            evalContainer.style.marginLeft = \"10px\";\r\n        } else {\r\n            evalContainer.style.left = \"-50px\";\r\n        }\r\n\r\n        topBar = document.createElement(\"div\");\r\n        bottomBar = document.createElement(\"div\");\r\n\r\n        [topBar, bottomBar].forEach(bar => {\r\n            bar.style.width = \"100%\";\r\n            bar.style.position = \"absolute\";\r\n            bar.style.transition = \"height 0.3s ease\";\r\n        });\r\n\r\n        topBar.style.top = \"0\";\r\n        bottomBar.style.bottom = \"0\";\r\n\r\n        evalContainer.appendChild(topBar);\r\n        evalContainer.appendChild(bottomBar);\r\n\r\n        // Texte score\r\n        scoreText = document.createElement(\"div\");\r\n        scoreText.style.position = \"absolute\";\r\n        scoreText.style.bottom = \"0\";\r\n        scoreText.style.left = \"50%\";\r\n        scoreText.style.transform = \"translateX(-50%)\";\r\n        scoreText.style.color = \"red\";\r\n        scoreText.style.fontWeight = \"bold\";\r\n        scoreText.style.fontSize = \"12px\";\r\n        scoreText.style.pointerEvents = \"none\";\r\n        evalContainer.appendChild(scoreText);\r\n\r\n        // Insertion dans le DOM\r\n        if (url.includes(\"chess.com\")) {\r\n            boardContainer.parentNode.style.display = \"flex\";\r\n            boardContainer.parentNode.insertBefore(evalContainer, boardContainer);\r\n        } else {\r\n            boardContainer.parentNode.insertBefore(evalContainer, boardContainer);\r\n        }\r\n\r\n    } else {\r\n        topBar = evalContainer.children[0];\r\n        bottomBar = evalContainer.children[1];\r\n        scoreText = evalContainer.children[2];\r\n    }\r\n\r\n    // Fonction pour parser le score\r\n    function parseScore(scoreStr) {\r\n        if (!scoreStr) return { score: 0, mate: false };\r\n\r\n        scoreStr = scoreStr.trim();\r\n        let mate = scoreStr.startsWith(\"#\");\r\n        if (mate) scoreStr = scoreStr.slice(1);\r\n\r\n        let score = parseFloat(scoreStr.replace(\"+\", \"\")) || 0;\r\n        return { score, mate };\r\n    }\r\n\r\n    let { score, mate } = parseScore(initialScore);\r\n    let percent = 50;\r\n\r\n    if (mate) {\r\n        let sign = score > 0 ? \"+\" : \"-\";\r\n        scoreText.textContent = \"#\" + sign + Math.abs(score);\r\n        percent =\r\n            (score > 0 && initialColor === \"white\") ||\r\n            (score < 0 && initialColor === \"black\")\r\n                ? 100\r\n                : 0;\r\n    } else {\r\n        let sign = score > 0 ? \"+\" : \"\";\r\n        scoreText.textContent = sign + score.toFixed(1);\r\n        if (initialColor === \"black\") score = -score;\r\n\r\n        if (score >= 7) percent = 90;\r\n        else if (score <= -7) percent = 10;\r\n        else percent = 50 + (score / 7) * 40;\r\n    }\r\n\r\n    // Couleurs barres\r\n    if (initialColor === \"white\") {\r\n        bottomBar.style.background = \"#ffffff\";\r\n        topBar.style.background = \"#312e2b\";\r\n    } else {\r\n        bottomBar.style.background = \"#312e2b\";\r\n        topBar.style.background = \"#ffffff\";\r\n    }\r\n\r\n    bottomBar.style.height = percent + \"%\";\r\n    topBar.style.height = 100 - percent + \"%\";\r\n}");
+            await page.EvaluateExpressionOnNewDocumentAsync("function clickButtonByTextIncludes(text) {\r\n    const buttons = document.querySelectorAll(\"button\");\r\n\r\n    for (const btn of buttons) {\r\n        if (btn.innerText && btn.innerText.includes(text)) {\r\n            btn.click();\r\n            return true;\r\n        }\r\n    }\r\n    return false;\r\n}");
+            await page.EvaluateExpressionOnNewDocumentAsync("function clickNewOpponent() {\r\n    const btn = document.querySelector(\".fbt.new-opponent\");\r\n    if (btn) {\r\n        btn.click();\r\n        return true;\r\n    }\r\n    return false;\r\n}\r\n");
+            await page.EvaluateExpressionOnNewDocumentAsync("function getGameObject() {\r\n  if (window.game) return window.game;\r\n  const board = document.querySelector(\".board\");\r\n  if (board && board.game) {\r\n    return board.game;\r\n  }\r\n  return null;\r\n}\r\n\r\nfunction movePiece(from, to, promotion = \"q\", moveDelay = 0) {\r\n  const game = getGameObject();\r\n  if (!game) return false;\r\n\r\n  const legal = game.getLegalMoves();\r\n  let move = legal.find((m) => m.from === from && m.to === to);\r\n  if (!move) return false;\r\n\r\n  if (promotion && move.promotionTypes) {\r\n    move.promotionType = promotion;\r\n  }\r\n\r\n  setTimeout(() => {\r\n    try {\r\n      game.move({ ...move, animate: true, userGenerated: true });\r\n    } catch (err) {\r\n      console.log(\"err de deplacement\");\r\n    }\r\n  }, moveDelay);\r\n\r\n  return true;\r\n}\r\n");
+
+            await page.EvaluateExpressionOnNewDocumentAsync(@"
                 (function() {
                     const OrigWS = window.WebSocket;
                     window._chessWS = null;
@@ -192,82 +194,92 @@ namespace ChessKiller
                 })();
                 ");
 
-                while (true)
+
+
+            while (true)
+            {
+                try
                 {
-                    try
+                    if (page.Url.Contains("chess.com"))
                     {
-                        if (page.Url.Contains("chess.com"))
+                        if (autoMove)
                         {
-                            if (autoMove)
-                            {
-                                await page.EvaluateExpressionAsync("clickButtonByTextIncludes('Nouvelle')");
-                            }
-
-                            var board = await page.QuerySelectorAsync("wc-chess-board");
-                            if (board != null)
-                            {
-
-                                string fen = await board.EvaluateFunctionAsync<string>(
-                                    @"el => el.game.getFEN()"
-                                );
-                                int sideIndicator = await board.EvaluateFunctionAsync<int>(
-                                    @"el => el.game.getPlayingAs()"
-                                );
-
-
-                                sideChessCom = sideIndicator == 1 ? "white" : "black";
-
-                                if (fen != lastFENChessCom)
-                                {
-                                    await page.EvaluateExpressionAsync("clearHighlightSquares();");
-                                    lastFENChessCom = fen;
-                                    var moves = engine.GetBestMoves(fen);
-
-                                    var moves2 = moves.Select(m => new
-                                    {
-                                        from = m["from"].ToString(),
-                                        to = m["to"].ToString(),
-                                        eval = m["eval"].ToString()
-                                    }).ToList();
-
-                                    await page.EvaluateFunctionAsync(@"(moves, side, fen) =>{highlightMovesOnBoard(moves, side, fen);}", moves2, sideChessCom[0], fen);
-
-                                    if (autoMove && moves.Count > 0 && sideChessCom[0] == fen.Split(' ')[1][0])
-                                    {
-                                        int randomDelay = rnd.Next(0, autoMoveDelay + 1);
-
-                                        await page.EvaluateFunctionAsync(
-                                            "movePiece",
-                                            moves[0]["from"],
-                                            moves[0]["to"],
-                                            "q",
-                                            randomDelay
-                                        );
-                                    }
-
-                                    if (moves.Count > 0)
-                                    {
-                                        await page.EvaluateFunctionAsync(
-                                        "(evalScore, side) => createEvalBar(evalScore, side)",
-                                        moves[0]["eval"],
-                                        sideChessCom
-                                        );
-                                    }
-                                }
-                            }
-
+                            await page.EvaluateExpressionAsync("clickButtonByTextIncludes('Nouvelle')");
                         }
 
-                        if (page.Url.Contains("lichess"))
+                        var board = await page.QuerySelectorAsync("wc-chess-board");
+                        if (board != null)
                         {
 
-                            if (autoMove)
-                            {
-                                await page.EvaluateExpressionAsync("clickNewOpponent()");
-                            }
+                            string fen = await board.EvaluateFunctionAsync<string>(
+                                @"el => el.game.getFEN()"
+                            );
+                            int sideIndicator = await board.EvaluateFunctionAsync<int>(
+                                @"el => el.game.getPlayingAs()"
+                            );
 
-                            //Console.Clear();
-                            bool flag = await page.EvaluateFunctionAsync<bool>(@"() => {
+
+                            sideChessCom = sideIndicator == 1 ? "white" : "black";
+
+                            if (fen != lastFENChessCom)
+                            {
+                                await page.EvaluateExpressionAsync("clearHighlightSquares();");
+                                lastFENChessCom = fen;
+                                var moves = engine.GetBestMoves(fen);
+
+                                var moves2 = moves.Select(m => new
+                                {
+                                    from = m["from"].ToString(),
+                                    to = m["to"].ToString(),
+                                    eval = m["eval"].ToString()
+                                }).ToList();
+
+                                //await page.EvaluateFunctionAsync(@"(moves, side, fen) =>{highlightMovesOnBoard(moves, side, fen);}", moves2, sideChessCom[0], fen);
+                                await page.EvaluateFunctionAsync(@"
+                                        (moves, side, fen) => {
+                                            highlightMovesOnBoard(moves, side, fen);
+                                        }
+                                        ", moves2, sideChessCom[0], fen);
+
+
+
+                                if (autoMove && moves.Count > 0 && sideChessCom[0] == fen.Split(' ')[1][0])
+                                {
+                                    int randomDelay = rnd.Next(0, autoMoveDelay + 1);
+
+                                    await page.EvaluateFunctionAsync(
+                                        "movePiece",
+                                        moves[0]["from"],
+                                        moves[0]["to"],
+                                        "q",
+                                        randomDelay
+                                    );
+                                }
+
+                                if (moves.Count > 0)
+                                {
+                                    await page.EvaluateFunctionAsync(@"
+                                            (evalScore, side) => {
+                                               createEvalBar(evalScore, side);
+                                            }
+                                            ", moves[0]["eval"], sideChessCom);
+
+                                }
+                            }
+                        }
+
+                    }
+
+                    if (page.Url.Contains("lichess"))
+                    {
+
+                        if (autoMove)
+                        {
+                            await page.EvaluateExpressionAsync("clickNewOpponent()");
+                        }
+
+                        //Console.Clear();
+                        bool flag = await page.EvaluateFunctionAsync<bool>(@"() => {
                             try {
                                 return (
                                     typeof site !== 'undefined' &&
@@ -279,26 +291,26 @@ namespace ChessKiller
                             }
                             }");
 
-                            //Console.WriteLine("true");
+                        //Console.WriteLine("true");
 
-                            if (flag)
-                            {
-                                await page.EvaluateExpressionAsync("window.castling = \"\";\r\n\r\n(function hookSoundMove() {\r\n\r\n    window.fen_ = window.fen_ || null;\r\n\r\n    const originalMove = site.sound.move;\r\n\r\n    site.sound.move = function(x) {\r\n        try {\r\n            let data = (typeof x === \"string\") ? JSON.parse(x) : x;\r\n\r\n            if (data.fen && data.uci && typeof data.ply === \"number\") {\r\n                let uci = data.uci;\r\n                let san = data.san;\r\n                let board = data.fen;\r\n                let ply = data.ply;\r\n\r\n                // reset au début\r\n                if (ply < 2) window.castling = \"KQkq\";\r\n\r\n                const from = uci.slice(0, 2);\r\n                const to = uci.slice(2, 4);\r\n                const isWhite = ply % 2 != 0;\r\n\r\n                /* ===== WHITE ===== */\r\n                if (isWhite) {\r\n                    if (from === \"e1\") window.castling = window.castling.replace(\"K\", \"\").replace(\"Q\", \"\");\r\n                    if (from === \"h1\") window.castling = window.castling.replace(\"K\", \"\").replace(\"Q\", \"\");\r\n                    if (from === \"a1\") window.castling = window.castling.replace(\"Q\", \"\").replace(\"Q\", \"\");\r\n                }\r\n\r\n                /* ===== BLACK ===== */\r\n                if (!isWhite) {\r\n                    if (from === \"e8\") window.castling = window.castling.replace(\"k\", \"\").replace(\"q\", \"\");\r\n                    if (from === \"h8\") window.castling = window.castling.replace(\"k\", \"\").replace(\"q\", \"\");\r\n                    if (from === \"a8\") window.castling = window.castling.replace(\"q\", \"\").replace(\"q\", \"\");\r\n                }\r\n\r\n                // roque explicite\r\n\r\n                if((san === \"O-O\" || san === \"O-O-O\") && isWhite) window.castling = window.castling.replace(\"KQ\", \"\")\r\n                if((san === \"O-O\" || san === \"O-O-O\") && !isWhite) window.castling = window.castling.replace(\"kq\", \"\")\r\n\r\n                if (window.castling === \"\") window.castling = \"-\";\r\n\r\n                const side = isWhite ? \"b\" : \"w\";\r\n                const fullmove = Math.floor(ply / 2) + 1;\r\n\r\n                const fenFinal = `${board} ${side} ${window.castling} - 0 ${fullmove}`;\r\n                window.fen_ = fenFinal;\r\n\r\n                console.log(window.fen_);\r\n            }\r\n\r\n        } catch (e) {\r\n            console.error(\"Erreur site.sound.move hook:\", e);\r\n        }\r\n\r\n        return originalMove.apply(this, arguments);\r\n    };\r\n\r\n})();\r\n");
-                                siteFlag = true;
+                        if (flag)
+                        {
+                            await page.EvaluateExpressionAsync("window.castling = \"\";\r\n\r\n(function hookSoundMove() {\r\n\r\n    window.fen_ = window.fen_ || null;\r\n\r\n    const originalMove = site.sound.move;\r\n\r\n    site.sound.move = function(x) {\r\n        try {\r\n            let data = (typeof x === \"string\") ? JSON.parse(x) : x;\r\n\r\n            if (data.fen && data.uci && typeof data.ply === \"number\") {\r\n                let uci = data.uci;\r\n                let san = data.san;\r\n                let board = data.fen;\r\n                let ply = data.ply;\r\n\r\n                // reset au début\r\n                if (ply < 2) window.castling = \"KQkq\";\r\n\r\n                const from = uci.slice(0, 2);\r\n                const to = uci.slice(2, 4);\r\n                const isWhite = ply % 2 != 0;\r\n\r\n                /* ===== WHITE ===== */\r\n                if (isWhite) {\r\n                    if (from === \"e1\") window.castling = window.castling.replace(\"K\", \"\").replace(\"Q\", \"\");\r\n                    if (from === \"h1\") window.castling = window.castling.replace(\"K\", \"\").replace(\"Q\", \"\");\r\n                    if (from === \"a1\") window.castling = window.castling.replace(\"Q\", \"\").replace(\"Q\", \"\");\r\n                }\r\n\r\n                /* ===== BLACK ===== */\r\n                if (!isWhite) {\r\n                    if (from === \"e8\") window.castling = window.castling.replace(\"k\", \"\").replace(\"q\", \"\");\r\n                    if (from === \"h8\") window.castling = window.castling.replace(\"k\", \"\").replace(\"q\", \"\");\r\n                    if (from === \"a8\") window.castling = window.castling.replace(\"q\", \"\").replace(\"q\", \"\");\r\n                }\r\n\r\n                // roque explicite\r\n\r\n                if((san === \"O-O\" || san === \"O-O-O\") && isWhite) window.castling = window.castling.replace(\"KQ\", \"\")\r\n                if((san === \"O-O\" || san === \"O-O-O\") && !isWhite) window.castling = window.castling.replace(\"kq\", \"\")\r\n\r\n                if (window.castling === \"\") window.castling = \"-\";\r\n\r\n                const side = isWhite ? \"b\" : \"w\";\r\n                const fullmove = Math.floor(ply / 2) + 1;\r\n\r\n                const fenFinal = `${board} ${side} ${window.castling} - 0 ${fullmove}`;\r\n                window.fen_ = fenFinal;\r\n\r\n                console.log(window.fen_);\r\n            }\r\n\r\n        } catch (e) {\r\n            console.error(\"Erreur site.sound.move hook:\", e);\r\n        }\r\n\r\n        return originalMove.apply(this, arguments);\r\n    };\r\n\r\n})();\r\n");
+                            siteFlag = true;
 
-                            }
-                            else
-                            {
-                                //Console.WriteLine("flag is false");
-                                siteFlag = false;
-                            }
+                        }
+                        else
+                        {
+                            //Console.WriteLine("flag is false");
+                            siteFlag = false;
+                        }
 
-                            ///
-                            if (siteFlag)
-                            {
-                                string fen = await page.EvaluateFunctionAsync<string>("() => window.fen_") ?? "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+                        ///
+                        if (siteFlag)
+                        {
+                            string fen = await page.EvaluateFunctionAsync<string>("() => window.fen_") ?? "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-                                sideLichess = await page.EvaluateExpressionAsync<string>(@"
+                            sideLichess = await page.EvaluateExpressionAsync<string>(@"
                                     (() => {
                                         if (document.querySelector('.cg-wrap.orientation-white.manipulable')) return 'white';
                                         if (document.querySelector('.cg-wrap.orientation-black.manipulable')) return 'black';
@@ -306,9 +318,9 @@ namespace ChessKiller
                                     })()
                                     ");
 
-                                if (autoMove && fen.Contains("/pppppppp/8/8/8/8/PPPPPPPP/") && sideLichess == "white")
-                                {
-                                    await page.EvaluateFunctionAsync(@"
+                            if (autoMove && fen.Contains("/pppppppp/8/8/8/8/PPPPPPPP/") && sideLichess == "white")
+                            {
+                                await page.EvaluateFunctionAsync(@"
                                         (uci) => {
                                             if (!window._chessWS) return;
                                             window._chessWS.send(JSON.stringify({
@@ -316,43 +328,43 @@ namespace ChessKiller
                                                 d: { u: uci, a: 1 }
                                             }));
                                         }", firstMove[rnd.Next(0, 3)]);
+                            }
+
+                            if (lastFENLichess != fen)
+                            {
+                                lastFENLichess = fen;
+                                await page.EvaluateExpressionAsync("clearHighlightSquares();");
+
+
+                                var moves = engine.GetBestMoves(fen);
+
+                                var moves2 = moves.Select(m => new
+                                {
+                                    from = m["from"].ToString(),
+                                    to = m["to"].ToString(),
+                                    eval = m["eval"].ToString()
+                                }).ToList();
+
+                                await page.EvaluateFunctionAsync(@"(moves, side, fen) =>{highlightMovesOnBoard(moves, side, fen);}", moves2, sideLichess[0], lastFENLichess);
+
+                                if (moves.Count > 0)
+                                {
+                                    await page.EvaluateFunctionAsync(
+                                    "(evalScore, side) => createEvalBar(evalScore, side)",
+                                    moves[0]["eval"],
+                                    sideLichess
+                                    );
                                 }
 
-                                if (lastFENLichess != fen)
+                                if (moves.Count > 0 && autoMove)
                                 {
-                                    lastFENLichess = fen;
-                                    await page.EvaluateExpressionAsync("clearHighlightSquares();");
+                                    string uciSend = moves[0]["from"] + moves[0]["to"];
 
+                                    int sleepTime = rnd.Next(0, autoMoveDelay);
 
-                                    var moves = engine.GetBestMoves(fen);
+                                    Thread.Sleep(sleepTime);
 
-                                    var moves2 = moves.Select(m => new
-                                    {
-                                        from = m["from"].ToString(),
-                                        to = m["to"].ToString(),
-                                        eval = m["eval"].ToString()
-                                    }).ToList();
-
-                                    await page.EvaluateFunctionAsync(@"(moves, side, fen) =>{highlightMovesOnBoard(moves, side, fen);}", moves2, sideLichess[0], lastFENLichess);
-
-                                    if (moves.Count > 0)
-                                    {
-                                        await page.EvaluateFunctionAsync(
-                                        "(evalScore, side) => createEvalBar(evalScore, side)",
-                                        moves[0]["eval"],
-                                        sideLichess
-                                        );
-                                    }
-
-                                    if (moves.Count > 0 && autoMove)
-                                    {
-                                        string uciSend = moves[0]["from"] + moves[0]["to"];
-
-                                        int sleepTime = rnd.Next(0, autoMoveDelay);
-
-                                        Thread.Sleep(sleepTime);
-
-                                        await page.EvaluateFunctionAsync(@"
+                                    await page.EvaluateFunctionAsync(@"
                                         (uci) => {
                                             if (!window._chessWS) return;
                                             window._chessWS.send(JSON.stringify({
@@ -360,39 +372,40 @@ namespace ChessKiller
                                                 d: { u: uci, a: 1 }
                                             }));
                                         }", uciSend);
-                                    }
                                 }
                             }
-
-
-
-
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-
-                        Console.WriteLine("=== EXCEPTION ===");
-                        Console.WriteLine($"Type      : {ex.GetType().FullName}");
-                        Console.WriteLine($"Message   : {ex.Message}");
-                        Console.WriteLine($"Source    : {ex.Source}");
-                        Console.WriteLine("StackTrace:");
-                        Console.WriteLine(ex.StackTrace);
-
-                        if (ex.InnerException != null)
-                        {
-                            Console.WriteLine("=== INNER EXCEPTION ===");
-                            Console.WriteLine(ex.InnerException.Message);
-                            Console.WriteLine(ex.InnerException.StackTrace);
                         }
 
-                        Console.WriteLine("=================");
+
+
+
                     }
-
-
-                    await Task.Delay(150);
                 }
+                catch (Exception ex)
+                {
+                    //Console.Clear();
+                    Console.WriteLine("=== EXCEPTION ===");
+                    Console.WriteLine($"Type      : {ex.GetType().FullName}");
+                    Console.WriteLine($"Message   : {ex.Message}");
+                    Console.WriteLine($"Source    : {ex.Source}");
+                    Console.WriteLine("StackTrace:");
+                    Console.WriteLine(ex.StackTrace);
+
+                    if (ex.InnerException != null)
+                    {
+                        Console.WriteLine("=== INNER EXCEPTION ===");
+                        Console.WriteLine(ex.InnerException.Message);
+                        Console.WriteLine(ex.InnerException.StackTrace);
+                    }
+
+                    Console.WriteLine("=================");
+                    //continue;
+                }
+
+
+                await Task.Delay(150);
             }
+
 
         }
 
