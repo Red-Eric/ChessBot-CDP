@@ -9,6 +9,8 @@ namespace ChessKiller
     {
         public static Form1 Instance;
 
+        const string version = "1.2";
+
         string castling = "KQkq";
         string sideChessCom = "white";
         string sideLichess = "white";
@@ -58,11 +60,11 @@ namespace ChessKiller
             personalities.Items.AddRange(pers.ToArray());
             personalities.SelectedIndex = 0;
             persDescr.Text = descriptions[0];
-            ConsoleManager.AllocConsole();
+            //ConsoleManager.AllocConsole();
             AutomateBrowserAsync();
 
-
         }
+
 
 
         private void elo_value_Scroll(object sender, EventArgs e)
@@ -384,13 +386,6 @@ namespace ChessKiller
                     Console.WriteLine($"Source    : {ex.Source}");
                     Console.WriteLine("StackTrace:");
                     Console.WriteLine(ex.StackTrace);
-
-                    if (ex.InnerException != null)
-                    {
-                        Console.WriteLine("=== INNER EXCEPTION ===");
-                        Console.WriteLine(ex.InnerException.Message);
-                        Console.WriteLine(ex.InnerException.StackTrace);
-                    }
 
                     Console.WriteLine("=================");
                     continue;

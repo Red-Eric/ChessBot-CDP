@@ -32,7 +32,7 @@
             panel1 = new Panel();
             pictureBox1 = new PictureBox();
             pictureBox3 = new PictureBox();
-            label1 = new Label();
+            titleApp = new Label();
             label2 = new Label();
             elo_text_value = new Label();
             elo_value = new TrackBar();
@@ -68,7 +68,7 @@
             panel1.BackColor = Color.FromArgb(48, 54, 61);
             panel1.Controls.Add(pictureBox1);
             panel1.Controls.Add(pictureBox3);
-            panel1.Controls.Add(label1);
+            panel1.Controls.Add(titleApp);
             panel1.Location = new Point(-2, 0);
             panel1.Name = "panel1";
             panel1.Size = new Size(536, 52);
@@ -100,16 +100,16 @@
             pictureBox3.TabStop = false;
             pictureBox3.Click += pictureBox3_Click;
             // 
-            // label1
+            // titleApp
             // 
-            label1.Font = new Font("Cambria", 19.8000011F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label1.ForeColor = Color.Red;
-            label1.Location = new Point(0, 0);
-            label1.Name = "label1";
-            label1.Size = new Size(533, 52);
-            label1.TabIndex = 0;
-            label1.Text = "ChessKiller v1.2";
-            label1.TextAlign = ContentAlignment.MiddleCenter;
+            titleApp.Font = new Font("Cambria", 19.8000011F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            titleApp.ForeColor = Color.Red;
+            titleApp.Location = new Point(0, 0);
+            titleApp.Name = "titleApp";
+            titleApp.Size = new Size(533, 52);
+            titleApp.TabIndex = 0;
+            titleApp.Text = "ChessKiller";
+            titleApp.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // label2
             // 
@@ -411,7 +411,7 @@
         #endregion
 
         private Panel panel1;
-        private Label label1;
+        private Label titleApp;
         private Label label2;
         private Label elo_text_value;
         private TrackBar elo_value;
