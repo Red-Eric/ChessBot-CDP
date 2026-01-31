@@ -8,14 +8,12 @@ namespace ChessKiller
     public partial class Form1 : Form
     {
         public static Form1 Instance;
-
-        const string version = "1.2";
-
         string castling = "KQkq";
         string sideChessCom = "white";
         string sideLichess = "white";
         string lastFENChessCom = "r1bnkbnr/pppp4/3q1p2/3Pp1pp/4P3/P1N2N1P/1PP1BPP1/R1BQK2R w KQkq - 1 11";
         string lastFENLichess = "r1bnkbnr/pppp4/3q1p2/3Pp1pp/4P3/P1N2N1P/1PP1BPP1/R1BQK2R w KQkq - 1 11";
+        const string updateURL = "aHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS9yZXBvcy9SZWQtRXJpYy9DaGVzc0JvdC1DRFAvY29udGVudHMvQ2hlc3NLaWxsZXIvdmVyc2lvbi50eHQ=";
 
         string browserPath = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 
@@ -61,10 +59,46 @@ namespace ChessKiller
             personalities.SelectedIndex = 0;
             persDescr.Text = descriptions[0];
             //ConsoleManager.AllocConsole();
-            AutomateBrowserAsync();
+
+            this.Load += Form1_Load;
 
         }
 
+        private async void Form1_Load(object sender, EventArgs e)
+        {
+            string m = await GetUpdateAsync();
+            MessageBox.Show(m);
+            // U or N
+            if(m == "U")
+            {
+                MessageBox.Show("You need to Update This Cheat");
+                MessageBox.Show("Press ? for more info");
+            }
+            else
+            {
+                await AutomateBrowserAsync();
+            }
+        }
+
+        public static async Task<string> GetUpdateAsync()
+        {
+            using HttpClient client = new HttpClient();
+
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("ChessKiller-Updater");
+
+            HttpResponseMessage response = await client.GetAsync(Encoding.UTF8.GetString(Convert.FromBase64String(updateURL)));
+            response.EnsureSuccessStatusCode();
+
+            string json = await response.Content.ReadAsStringAsync();
+
+            using JsonDocument doc = JsonDocument.Parse(json);
+            string base64Content = doc.RootElement.GetProperty("content").GetString();
+
+            byte[] bytes = Convert.FromBase64String(base64Content);
+            string version = Encoding.UTF8.GetString(bytes).Trim();
+
+            return version;
+        }
 
 
         private void elo_value_Scroll(object sender, EventArgs e)
@@ -123,14 +157,10 @@ namespace ChessKiller
             lastFENChessCom = "";
         }
 
-        // Expiration
-
         //////// Hack thread
-        ///
+        
         private async Task AutomateBrowserAsync()
         {
-
-
             // Open Browser
 
             var browser = await Puppeteer.LaunchAsync(new LaunchOptions
