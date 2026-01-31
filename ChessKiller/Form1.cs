@@ -18,7 +18,7 @@ namespace ChessKiller
         const string updateURL = "aHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS9yZXBvcy9SZWQtRXJpYy9DaGVzc0JvdC1DRFAvY29udGVudHMvQ2hlc3NLaWxsZXIvdmVyc2lvbi50eHQ=";
 
         string browserPath = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
-
+        private CancellationTokenSource cts;
         private List<string> pers = new List<string>
         {
             "Default",
@@ -69,6 +69,7 @@ namespace ChessKiller
         private async void Form1_Load(object sender, EventArgs e)
         {
             string m = await GetUpdateAsync();
+            cts = new CancellationTokenSource();
             // U or N
             if (m == "U")
             {
@@ -81,7 +82,7 @@ namespace ChessKiller
             }
             else
             {
-                await AutomateBrowserAsync();
+                await AutomateBrowserAsync(cts.Token);
             }
         }
 
@@ -157,14 +158,14 @@ namespace ChessKiller
         private void personalities_SelectedIndexChanged(object sender, EventArgs e)
         {
             engine.Personality = personalities.Text;
-            persDescr.Text = pers[personalities.SelectedIndex];
+            persDescr.Text = descriptions[personalities.SelectedIndex];
             lastFENLichess = "";
             lastFENChessCom = "";
         }
 
         //////// Hack thread
 
-        private async Task AutomateBrowserAsync()
+        private async Task AutomateBrowserAsync(CancellationToken token)
         {
             // Open Browser
 
@@ -179,7 +180,7 @@ namespace ChessKiller
             //var pages = await browser.PagesAsync();
             IPage page = null;
 
-            while (true)
+            while (!token.IsCancellationRequested)
             {
                 try
                 {
@@ -213,13 +214,8 @@ namespace ChessKiller
 
                     if (page != null)
                     {
-                        if (page.IsClosed)
-                        {
-                            Instance.Close();
-                        }
 
-
-                        if (page.Url.Contains("chess.com"))
+                        if (page != null && !string.IsNullOrEmpty(page.Url) && page.Url.Contains("chess.com"))
                         {
                             await page.WaitForSelectorAsync("wc-chess-board");
                             if (autoMove)
@@ -290,7 +286,7 @@ namespace ChessKiller
 
                         }
 
-                        if (page.Url.Contains("lichess"))
+                        if (page != null && !string.IsNullOrEmpty(page.Url) && page.Url.Contains("lichess"))
                         {
                             await page.WaitForSelectorAsync("cg-board");
                             if (autoMove)
@@ -410,26 +406,23 @@ namespace ChessKiller
                 catch (Exception ex)
                 {
                     //Console.Clear();
-                    Console.WriteLine("=== EXCEPTION ===");
-                    Console.WriteLine($"Type      : {ex.GetType().FullName}");
-                    Console.WriteLine($"Message   : {ex.Message}");
-                    Console.WriteLine($"Source    : {ex.Source}");
-                    Console.WriteLine("StackTrace:");
-                    Console.WriteLine(ex.StackTrace);
-
-                    Console.WriteLine("=================");
+                    //Console.WriteLine("=== EXCEPTION ===");
+                    //Console.WriteLine($"Type      : {ex.GetType().FullName}");
+                    //Console.WriteLine($"Message   : {ex.Message}");
+                    //Console.WriteLine($"Source    : {ex.Source}");
+                    //Console.WriteLine("StackTrace:");
+                    //Console.WriteLine(ex.StackTrace);
+                    //Console.WriteLine("=================");
                     continue;
                 }
-
-
-                await Task.Delay(150);
+                await Task.Delay(150, token);
             }
-
 
         }
 
         private void pictureBox3_Click(object sender, EventArgs e)
         {
+            cts?.Cancel();
             this.Close();
         }
 
