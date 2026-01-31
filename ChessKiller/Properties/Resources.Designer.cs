@@ -73,6 +73,36 @@ namespace ChessKiller.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap icons8_effacer_144 {
+            get {
+                object obj = ResourceManager.GetObject("icons8-effacer-144", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap icons8_effacer_1441 {
+            get {
+                object obj = ResourceManager.GetObject("icons8-effacer-1441", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap icons8_info_144 {
+            get {
+                object obj = ResourceManager.GetObject("icons8-info-144", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap icons8_point_d_interrogation_emoji_96 {
             get {
                 object obj = ResourceManager.GetObject("icons8-point-d\'interrogation-emoji-96", resourceCulture);

@@ -48,7 +48,7 @@
             label1.Name = "label1";
             label1.Size = new Size(631, 66);
             label1.TabIndex = 1;
-            label1.Text = "ChessKiller 1.2";
+            label1.Text = "INFO";
             label1.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // pictureBox1
@@ -103,7 +103,7 @@
             // 
             pictureBox3.BackColor = Color.FromArgb(48, 54, 61);
             pictureBox3.Cursor = Cursors.Hand;
-            pictureBox3.Image = Properties.Resources.redcircle;
+            pictureBox3.Image = Properties.Resources.icons8_effacer_1441;
             pictureBox3.Location = new Point(588, 15);
             pictureBox3.Name = "pictureBox3";
             pictureBox3.Size = new Size(30, 30);

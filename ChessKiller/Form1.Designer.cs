@@ -78,7 +78,7 @@
             // 
             pictureBox1.BackColor = Color.FromArgb(48, 54, 61);
             pictureBox1.Cursor = Cursors.Hand;
-            pictureBox1.Image = Properties.Resources.icons8_point_d_interrogation_emoji_96;
+            pictureBox1.Image = Properties.Resources.icons8_info_144;
             pictureBox1.Location = new Point(447, 9);
             pictureBox1.Name = "pictureBox1";
             pictureBox1.Size = new Size(30, 30);
@@ -91,7 +91,7 @@
             // 
             pictureBox3.BackColor = Color.FromArgb(48, 54, 61);
             pictureBox3.Cursor = Cursors.Hand;
-            pictureBox3.Image = Properties.Resources.redcircle;
+            pictureBox3.Image = Properties.Resources.icons8_effacer_144;
             pictureBox3.Location = new Point(489, 9);
             pictureBox3.Name = "pictureBox3";
             pictureBox3.Size = new Size(30, 30);

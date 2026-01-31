@@ -1,3 +1,4 @@
+using System.Drawing;
 using System.Formats.Tar;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -71,8 +72,12 @@ namespace ChessKiller
             // U or N
             if (m == "U")
             {
-                MessageBox.Show("You need to Update This Cheat");
-                MessageBox.Show("Press ? for more info");
+                MessageBox.Show(
+                    "If you had an error or something, go to the Discord server (Chess Killer Community) and press 'Info' for more information.",
+                    "Information",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information
+                );
             }
             else
             {
@@ -221,6 +226,11 @@ namespace ChessKiller
                             {
                                 await page.EvaluateExpressionAsync("clickButtonByTextIncludes('Nouvelle')");
                                 await page.EvaluateExpressionAsync("clickButtonByTextIncludes('new')");
+                            }
+
+                            if(autoMove && lastFENChessCom.Contains("/pppppppp/8/8/8/8/PPPPPPPP/") && sideChessCom == "white")
+                            {
+                                lastFENChessCom = "";
                             }
 
                             string fen = await page.EvaluateExpressionAsync<string>(@"document.querySelector('wc-chess-board').game.getFEN();");
