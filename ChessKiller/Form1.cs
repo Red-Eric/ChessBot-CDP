@@ -68,7 +68,6 @@ namespace ChessKiller
         private async void Form1_Load(object sender, EventArgs e)
         {
             string m = await GetUpdateAsync();
-            MessageBox.Show(m);
             // U or N
             if (m == "U")
             {
@@ -214,38 +213,35 @@ namespace ChessKiller
                             Instance.Close();
                         }
 
-                        bool go = await page.EvaluateExpressionAsync<bool>(@"document.readyState == 'complete'");
 
-                        if (go)
+                        if (page.Url.Contains("chess.com"))
                         {
-                            if (page.Url.Contains("chess.com"))
+                            await page.WaitForSelectorAsync("wc-chess-board");
+                            if (autoMove)
                             {
+                                await page.EvaluateExpressionAsync("clickButtonByTextIncludes('Nouvelle')");
+                                await page.EvaluateExpressionAsync("clickButtonByTextIncludes('new')");
+                            }
 
-                                if (autoMove)
+                            string fen = await page.EvaluateExpressionAsync<string>(@"document.querySelector('wc-chess-board').game.getFEN();");
+                            int sideIndicator = await page.EvaluateExpressionAsync<int>(@"document.querySelector('wc-chess-board').game.getPlayingAs();");
+
+                            sideChessCom = sideIndicator == 1 ? "white" : "black";
+
+                            if (fen != lastFENChessCom)
+                            {
+                                await page.EvaluateExpressionAsync("if (typeof clearHighlightSquares === \"function\") {\r\n    clearHighlightSquares();\r\n}");
+                                lastFENChessCom = fen;
+                                var moves = engine.GetBestMoves(fen);
+
+                                var moves2 = moves.Select(m => new
                                 {
-                                    await page.EvaluateExpressionAsync("clickButtonByTextIncludes('Nouvelle')");
-                                    await page.EvaluateExpressionAsync("clickButtonByTextIncludes('new')");
-                                }
+                                    from = m["from"].ToString(),
+                                    to = m["to"].ToString(),
+                                    eval = m["eval"].ToString()
+                                }).ToList();
 
-                                string fen = await page.EvaluateExpressionAsync<string>(@"document.querySelector('wc-chess-board').game.getFEN();");
-                                int sideIndicator = await page.EvaluateExpressionAsync<int>(@"document.querySelector('wc-chess-board').game.getPlayingAs();");
-
-                                sideChessCom = sideIndicator == 1 ? "white" : "black";
-
-                                if (fen != lastFENChessCom)
-                                {
-                                    await page.EvaluateExpressionAsync("if (typeof clearHighlightSquares === \"function\") {\r\n    clearHighlightSquares();\r\n}");
-                                    lastFENChessCom = fen;
-                                    var moves = engine.GetBestMoves(fen);
-
-                                    var moves2 = moves.Select(m => new
-                                    {
-                                        from = m["from"].ToString(),
-                                        to = m["to"].ToString(),
-                                        eval = m["eval"].ToString()
-                                    }).ToList();
-
-                                    await page.EvaluateFunctionAsync(@"
+                                await page.EvaluateFunctionAsync(@"
                                 (moves, side, fen) => {
                                     if (typeof highlightMovesOnBoard === 'function') {
                                         highlightMovesOnBoard(moves, side, fen);
@@ -254,22 +250,22 @@ namespace ChessKiller
                                 ", moves2, sideChessCom[0], fen);
 
 
-                                    if (autoMove && moves.Count > 0 && sideChessCom[0] == fen.Split(' ')[1][0])
-                                    {
-                                        int randomDelay = rnd.Next(0, autoMoveDelay + 1);
+                                if (autoMove && moves.Count > 0 && sideChessCom[0] == fen.Split(' ')[1][0])
+                                {
+                                    int randomDelay = rnd.Next(0, autoMoveDelay + 1);
 
-                                        await page.EvaluateFunctionAsync(
-                                            "movePiece",
-                                            moves[0]["from"],
-                                            moves[0]["to"],
-                                            "q",
-                                            randomDelay
-                                        );
-                                    }
+                                    await page.EvaluateFunctionAsync(
+                                        "movePiece",
+                                        moves[0]["from"],
+                                        moves[0]["to"],
+                                        "q",
+                                        randomDelay
+                                    );
+                                }
 
-                                    if (moves.Count > 0)
-                                    {
-                                        await page.EvaluateFunctionAsync(@"
+                                if (moves.Count > 0)
+                                {
+                                    await page.EvaluateFunctionAsync(@"
                                     (evalScore, side) => {
                                         if (typeof createEvalBar === 'function') {
                                             createEvalBar(evalScore, side);
@@ -278,22 +274,22 @@ namespace ChessKiller
                                     ", moves[0]["eval"], sideChessCom);
 
 
-                                    }
                                 }
-
-
                             }
 
-                            if (page.Url.Contains("lichess"))
+
+                        }
+
+                        if (page.Url.Contains("lichess"))
+                        {
+                            await page.WaitForSelectorAsync("cg-board");
+                            if (autoMove)
                             {
+                                await page.EvaluateExpressionAsync("clickNewOpponent()");
+                            }
 
-                                if (autoMove)
-                                {
-                                    await page.EvaluateExpressionAsync("clickNewOpponent()");
-                                }
-
-                                //Console.Clear();
-                                bool flag = await page.EvaluateFunctionAsync<bool>(@"() => {
+                            //Console.Clear();
+                            bool flag = await page.EvaluateFunctionAsync<bool>(@"() => {
                             try {
                                 return (
                                     typeof site !== 'undefined' &&
@@ -305,26 +301,26 @@ namespace ChessKiller
                             }
                             }");
 
-                                //Console.WriteLine("true");
+                            //Console.WriteLine("true");
 
-                                if (flag)
-                                {
-                                    await page.EvaluateExpressionAsync("window.castling = \"\";\r\n\r\n(function hookSoundMove() {\r\n\r\n    window.fen_ = window.fen_ || null;\r\n\r\n    const originalMove = site.sound.move;\r\n\r\n    site.sound.move = function(x) {\r\n        try {\r\n            let data = (typeof x === \"string\") ? JSON.parse(x) : x;\r\n\r\n            if (data.fen && data.uci && typeof data.ply === \"number\") {\r\n                let uci = data.uci;\r\n                let san = data.san;\r\n                let board = data.fen;\r\n                let ply = data.ply;\r\n\r\n                // reset au début\r\n                if (ply < 2) window.castling = \"KQkq\";\r\n\r\n                const from = uci.slice(0, 2);\r\n                const to = uci.slice(2, 4);\r\n                const isWhite = ply % 2 != 0;\r\n\r\n                /* ===== WHITE ===== */\r\n                if (isWhite) {\r\n                    if (from === \"e1\") window.castling = window.castling.replace(\"K\", \"\").replace(\"Q\", \"\");\r\n                    if (from === \"h1\") window.castling = window.castling.replace(\"K\", \"\").replace(\"Q\", \"\");\r\n                    if (from === \"a1\") window.castling = window.castling.replace(\"Q\", \"\").replace(\"Q\", \"\");\r\n                }\r\n\r\n                /* ===== BLACK ===== */\r\n                if (!isWhite) {\r\n                    if (from === \"e8\") window.castling = window.castling.replace(\"k\", \"\").replace(\"q\", \"\");\r\n                    if (from === \"h8\") window.castling = window.castling.replace(\"k\", \"\").replace(\"q\", \"\");\r\n                    if (from === \"a8\") window.castling = window.castling.replace(\"q\", \"\").replace(\"q\", \"\");\r\n                }\r\n\r\n                // roque explicite\r\n\r\n                if((san === \"O-O\" || san === \"O-O-O\") && isWhite) window.castling = window.castling.replace(\"KQ\", \"\")\r\n                if((san === \"O-O\" || san === \"O-O-O\") && !isWhite) window.castling = window.castling.replace(\"kq\", \"\")\r\n\r\n                if (window.castling === \"\") window.castling = \"-\";\r\n\r\n                const side = isWhite ? \"b\" : \"w\";\r\n                const fullmove = Math.floor(ply / 2) + 1;\r\n\r\n                const fenFinal = `${board} ${side} ${window.castling} - 0 ${fullmove}`;\r\n                window.fen_ = fenFinal;\r\n\r\n                console.log(window.fen_);\r\n            }\r\n\r\n        } catch (e) {\r\n            console.error(\"Erreur site.sound.move hook:\", e);\r\n        }\r\n\r\n        return originalMove.apply(this, arguments);\r\n    };\r\n\r\n})();\r\n");
-                                    siteFlag = true;
+                            if (flag)
+                            {
+                                await page.EvaluateExpressionAsync("window.castling = \"\";\r\n\r\n(function hookSoundMove() {\r\n\r\n    window.fen_ = window.fen_ || null;\r\n\r\n    const originalMove = site.sound.move;\r\n\r\n    site.sound.move = function(x) {\r\n        try {\r\n            let data = (typeof x === \"string\") ? JSON.parse(x) : x;\r\n\r\n            if (data.fen && data.uci && typeof data.ply === \"number\") {\r\n                let uci = data.uci;\r\n                let san = data.san;\r\n                let board = data.fen;\r\n                let ply = data.ply;\r\n\r\n                // reset au début\r\n                if (ply < 2) window.castling = \"KQkq\";\r\n\r\n                const from = uci.slice(0, 2);\r\n                const to = uci.slice(2, 4);\r\n                const isWhite = ply % 2 != 0;\r\n\r\n                /* ===== WHITE ===== */\r\n                if (isWhite) {\r\n                    if (from === \"e1\") window.castling = window.castling.replace(\"K\", \"\").replace(\"Q\", \"\");\r\n                    if (from === \"h1\") window.castling = window.castling.replace(\"K\", \"\").replace(\"Q\", \"\");\r\n                    if (from === \"a1\") window.castling = window.castling.replace(\"Q\", \"\").replace(\"Q\", \"\");\r\n                }\r\n\r\n                /* ===== BLACK ===== */\r\n                if (!isWhite) {\r\n                    if (from === \"e8\") window.castling = window.castling.replace(\"k\", \"\").replace(\"q\", \"\");\r\n                    if (from === \"h8\") window.castling = window.castling.replace(\"k\", \"\").replace(\"q\", \"\");\r\n                    if (from === \"a8\") window.castling = window.castling.replace(\"q\", \"\").replace(\"q\", \"\");\r\n                }\r\n\r\n                // roque explicite\r\n\r\n                if((san === \"O-O\" || san === \"O-O-O\") && isWhite) window.castling = window.castling.replace(\"KQ\", \"\")\r\n                if((san === \"O-O\" || san === \"O-O-O\") && !isWhite) window.castling = window.castling.replace(\"kq\", \"\")\r\n\r\n                if (window.castling === \"\") window.castling = \"-\";\r\n\r\n                const side = isWhite ? \"b\" : \"w\";\r\n                const fullmove = Math.floor(ply / 2) + 1;\r\n\r\n                const fenFinal = `${board} ${side} ${window.castling} - 0 ${fullmove}`;\r\n                window.fen_ = fenFinal;\r\n\r\n                console.log(window.fen_);\r\n            }\r\n\r\n        } catch (e) {\r\n            console.error(\"Erreur site.sound.move hook:\", e);\r\n        }\r\n\r\n        return originalMove.apply(this, arguments);\r\n    };\r\n\r\n})();\r\n");
+                                siteFlag = true;
 
-                                }
-                                else
-                                {
-                                    //Console.WriteLine("flag is false");
-                                    siteFlag = false;
-                                }
+                            }
+                            else
+                            {
+                                //Console.WriteLine("flag is false");
+                                siteFlag = false;
+                            }
 
-                                ///
-                                if (siteFlag)
-                                {
-                                    string fen = await page.EvaluateFunctionAsync<string>("() => window.fen_") ?? "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+                            ///
+                            if (siteFlag)
+                            {
+                                string fen = await page.EvaluateFunctionAsync<string>("() => window.fen_") ?? "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-                                    sideLichess = await page.EvaluateExpressionAsync<string>(@"
+                                sideLichess = await page.EvaluateExpressionAsync<string>(@"
                                     (() => {
                                         if (document.querySelector('.cg-wrap.orientation-white.manipulable')) return 'white';
                                         if (document.querySelector('.cg-wrap.orientation-black.manipulable')) return 'black';
@@ -332,9 +328,9 @@ namespace ChessKiller
                                     })()
                                     ");
 
-                                    if (autoMove && fen.Contains("/pppppppp/8/8/8/8/PPPPPPPP/") && sideLichess == "white")
-                                    {
-                                        await page.EvaluateFunctionAsync(@"
+                                if (autoMove && fen.Contains("/pppppppp/8/8/8/8/PPPPPPPP/") && sideLichess == "white")
+                                {
+                                    await page.EvaluateFunctionAsync(@"
                                         (uci) => {
                                             if (!window._chessWS) return;
                                             window._chessWS.send(JSON.stringify({
@@ -342,43 +338,43 @@ namespace ChessKiller
                                                 d: { u: uci, a: 1 }
                                             }));
                                         }", firstMove[rnd.Next(0, 3)]);
+                                }
+
+                                if (lastFENLichess != fen)
+                                {
+                                    lastFENLichess = fen;
+                                    await page.EvaluateExpressionAsync("clearHighlightSquares();");
+
+
+                                    var moves = engine.GetBestMoves(fen);
+
+                                    var moves2 = moves.Select(m => new
+                                    {
+                                        from = m["from"].ToString(),
+                                        to = m["to"].ToString(),
+                                        eval = m["eval"].ToString()
+                                    }).ToList();
+
+                                    await page.EvaluateFunctionAsync(@"(moves, side, fen) =>{highlightMovesOnBoard(moves, side, fen);}", moves2, sideLichess[0], lastFENLichess);
+
+                                    if (moves.Count > 0)
+                                    {
+                                        await page.EvaluateFunctionAsync(
+                                        "(evalScore, side) => createEvalBar(evalScore, side)",
+                                        moves[0]["eval"],
+                                        sideLichess
+                                        );
                                     }
 
-                                    if (lastFENLichess != fen)
+                                    if (moves.Count > 0 && autoMove)
                                     {
-                                        lastFENLichess = fen;
-                                        await page.EvaluateExpressionAsync("clearHighlightSquares();");
+                                        string uciSend = moves[0]["from"] + moves[0]["to"];
 
+                                        int sleepTime = rnd.Next(0, autoMoveDelay);
 
-                                        var moves = engine.GetBestMoves(fen);
+                                        Thread.Sleep(sleepTime);
 
-                                        var moves2 = moves.Select(m => new
-                                        {
-                                            from = m["from"].ToString(),
-                                            to = m["to"].ToString(),
-                                            eval = m["eval"].ToString()
-                                        }).ToList();
-
-                                        await page.EvaluateFunctionAsync(@"(moves, side, fen) =>{highlightMovesOnBoard(moves, side, fen);}", moves2, sideLichess[0], lastFENLichess);
-
-                                        if (moves.Count > 0)
-                                        {
-                                            await page.EvaluateFunctionAsync(
-                                            "(evalScore, side) => createEvalBar(evalScore, side)",
-                                            moves[0]["eval"],
-                                            sideLichess
-                                            );
-                                        }
-
-                                        if (moves.Count > 0 && autoMove)
-                                        {
-                                            string uciSend = moves[0]["from"] + moves[0]["to"];
-
-                                            int sleepTime = rnd.Next(0, autoMoveDelay);
-
-                                            Thread.Sleep(sleepTime);
-
-                                            await page.EvaluateFunctionAsync(@"
+                                        await page.EvaluateFunctionAsync(@"
                                         (uci) => {
                                             if (!window._chessWS) return;
                                             window._chessWS.send(JSON.stringify({
@@ -386,17 +382,14 @@ namespace ChessKiller
                                                 d: { u: uci, a: 1 }
                                             }));
                                         }", uciSend);
-                                        }
                                     }
                                 }
-
-
-
-
                             }
 
-                        }
 
+
+
+                        }
 
 
                     }
