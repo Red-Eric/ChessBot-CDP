@@ -1,1 +1,1 @@
-# ChessKiller
+# ChessBot
